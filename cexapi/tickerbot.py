@@ -17,7 +17,7 @@ def tick(col):
         bid = json.dumps(api.ticker('BCH/USD')['bid'])
         print(colored("Last: %s Ask: %s Bid %s " % (last, ask, bid), col))
     except Exception as err:
-        print("Error: %s" % e)
+        print("Error: %s" % err)
         pass
 
 while True:
