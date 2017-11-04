@@ -3,6 +3,8 @@ cex.io-api-python
 
 CEX.IO API integration. Python sources.
 
+TickerBot added by Darkerego November 2017
+
 ##Intro
 
 1. Download lib
