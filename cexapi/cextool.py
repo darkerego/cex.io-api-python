@@ -13,8 +13,8 @@ import conf
 import sys
 #from termcolor import colored
 debug=False
-import cex
-cexio = cex
+import cexio
+#cexio = cex
 api = cexio.Api(conf.username, conf.api_key, conf.api_secret)
 
 
