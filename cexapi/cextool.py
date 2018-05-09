@@ -1,9 +1,10 @@
-#!/usr/bin/env python3
-
+#!/usr/bin/env python3.6
+#import logging
 from urllib.request import urlopen
 import argparse
 import time
 import sys
+#import cexapi
 import conf
 import time
 import json
@@ -12,8 +13,8 @@ import conf
 import sys
 #from termcolor import colored
 debug=False
-import cexio
-# create 'conf.py' and set these variables:
+import cex
+cexio = cex
 api = cexio.Api(conf.username, conf.api_key, conf.api_secret)
 
 
@@ -29,7 +30,7 @@ def coltick(col,pair):
     try:
         col = str(col)
         pair = str(pair)
-        api = cexio.Api(conf.username, conf.api_key, conf.api_secret)
+        api = cexio.Api('conf.username', 'conf.api_key', 'conf.api_secret')
         last = json.dumps(api.ticker(pair)['last'])
         ask = json.dumps(api.ticker(pair)['ask'])
         bid = json.dumps(api.ticker(pair)['bid'])
@@ -38,7 +39,25 @@ def coltick(col,pair):
         print("Error: %s" % err)
         pass
 
-    
+def get_fee_info():
+    api = cexio.Api(conf.username, conf.api_key, conf.api_secret)
+    try:
+        ret = json.dumps(api.get_myfee)
+    except Exception as err:
+       print('Error: '+ str(err))
+    else:
+       print(ret)
+
+def get_deposit_addresses_(currency):
+    api = cexio.Api(conf.username, conf.api_key, conf.api_secret)
+    try:
+        ret = api.get_deposit_addresses(currency)
+    except Exception as err:
+       print('Error: ' + str(err))
+    else:
+       #ret = json.loads(ret)
+       print(ret)
+
 def tick(pair):
     try:
         pair = str(pair)
@@ -63,6 +82,7 @@ def convert_price(amount,pair):
 
 def balances():
     try:
+        #api = cexapi.API(conf.username, conf.api_key, conf.api_secret)
         api = cexio.Api(conf.username, conf.api_key, conf.api_secret)
         try:
             bal = json.dumps(api.balance)
@@ -91,7 +111,6 @@ def current_orders_(pair):
 
 def orderBook(pair):
     try:
-        #api = cexapi.API(conf.username, conf.api_key, conf.api_secret)
         api = cexio.Api(conf.username, conf.api_key, conf.api_secret)
         if pair == 'null':
             book = api.order_book('1', 'BTC/USD')
@@ -103,7 +122,6 @@ def orderBook(pair):
         book = json.dumps(book)
         return(book)
 def cancel_order_(order_id):
-    #api = cexapi.API(conf.username, conf.api_key, conf.api_secret)
     api = cexio.Api(conf.username, conf.api_key, conf.api_secret)
     try:
         ret = api.cancel_order(str(order_id))
@@ -114,7 +132,6 @@ def cancel_order_(order_id):
         return("Success")
 
 def price_stats(hours, limit, pair):
-    #api = cexapi.API(conf.username, conf.api_key, conf.api_secret)
     api = cexio.Api(conf.username, conf.api_key, conf.api_secret)
     if valid_pair(pair):
         try:
@@ -140,7 +157,6 @@ def get_trade_hist(since, pair):
     """
     since - return trades with tid >= since (optional parameter, 1000 or all existing (if less than 1000), elements are returned if omitted)
     """
-    #api = cexapi.API(conf.username, conf.api_key, conf.api_secret)
     api = cexio.Api(conf.username, conf.api_key, conf.api_secret)
     if valid_pair(pair):
         try:
@@ -160,7 +176,6 @@ def get_trade_hist(since, pair):
 
 def valid_pair(pair):
     try:
-        #api = cexapi.API(conf.username, conf.api_key, conf.api_secret)
         api = cexio.Api(conf.username, conf.api_key, conf.api_secret)
         last = json.dumps(api.ticker(pair)['last'])
     except Exception as err:
@@ -173,18 +188,12 @@ def valid_pair(pair):
 def placeOrder(otype, pair, amount, price):
     pair = str(pair)
     debug = True
-    #err = str("ERROR")
     try:
-        #api = cexapi.API(conf.username, conf.api_key, conf.api_secret)
         api = cexio.Api(conf.username, conf.api_key, conf.api_secret)
     except Exception as err:
         print(err)
         return False
     else:
-    #if otype == 'buy':
-    #    call='buy_limit_order'
-    #if otype == 'sell':
-    #    call='sell_limit_order'
         if float(amount) > float(0):
             if float(price) and float(price) > float(0.0):
                 if valid_pair(pair):
@@ -214,7 +223,6 @@ def placeOrder(otype, pair, amount, price):
                         else:
                             print("Sucess. Order ID: %s posted at %s  " % (order_id,order_time,))
                             print("Type: %s Amount: %s at %s Complete: %s Pending: %s" %(order_type,order_amount,order_price,order_complete,order_pending))
-                        
                             return True
                 else:
                     print("Invalid pair, not executing")
@@ -229,27 +237,39 @@ def placeOrder(otype, pair, amount, price):
 
 def main(argv):
         # Setup Argument Parser
-        parser = argparse.ArgumentParser(description='Generic Parser')
+        parser = argparse.ArgumentParser(description='CexIO API Tool')
         parser.add_argument('-p', '--pair', default='null', type=str, required=False, help='buy or sell this currency pair (example: BTC_ETH)')
         parser.add_argument('-P', '--price', default='0.0', type=float, required=False, help='at this price (example: 0.011)')
         parser.add_argument('-a', '--amount', default='0.0', type=float, required=False, help='for this amount (example: 0.5)')
         parser.add_argument('-c', '--convert', default=False,  action='store_true', required=False, help='Convert a crypto to fiat. Specify with <-p/--pair> <-a/--amount>')
         parser.add_argument('-C', '--cancel_order', default=False, action='store_true', required=False, help='Cancel an order with specified order id [ -i <order_id>]')
-        parser.add_argument('-i', '--order_id', default='null', type=str, required=False, help= 'Order ID Number')
+        parser.add_argument('-i', '--order_id', default='null', type=str, required=False, help='Order ID Number')
+        parser.add_argument('-F', '--fee_info', default=False, action='store_true', required=False, help='Fee info for this account')
 
 
         parser.add_argument('-O', '--current_orders', default=False, action='store_true', required=False, help='Get current orders for specified pair (with -p)')
         parser.add_argument('-b', '--buy', default=False, action='store_true', required=False, help='Submit a buy order')
         parser.add_argument('-s', '--sell', default=False, action='store_true', required=False, help='Submit a sell order')
-        
+
         parser.add_argument('-B',  '--balance', default=False, action='store_true', required=False, help='Get account balances (example: BTC)')
         parser.add_argument('-o', '--order_book', default=False, action='store_true', required=False, help='Return order book for given currency pair (specify with -p) (example: BTC/USD)')
         parser.add_argument('-t', '--ticker', default=False, action='store_true', required=False, help='Return ticker data for pair (specify with -p)')
         parser.add_argument('-T', '--ticker_loop', default=False, action='store_true', required=False, help='Continueously return ticker data for this pair (specify with -p)')
         parser.add_argument('-S', '--price_stat', default=False, action='store_true', required=False, help='Retrieve price statistics for last 24 hours for a given pair (specify with -p)')
+        # withdrawls & deposits
+        parser.add_argument('-G', '--get_deposit_address', default=False, action='store_true', required=False, help='Return deposit address for currency [specify with -X]')
+        parser.add_argument('-X', '--currency', default='null', type=str, required=False, help='Specify a currency')
+        
         # parse args
         args = parser.parse_args()
         #config = ConfigParser()
+
+        get_deposit_address = args.get_deposit_address
+        currency = args.currency
+        if get_deposit_address and currency == 'null':
+            print('Specify a currency: [ex: BTC]')
+            sys.exit(1)
+
         pair = args.pair
         price = args.price
         amount = args.amount
@@ -264,6 +284,7 @@ def main(argv):
         price_stat = args.price_stat
         order_id = args.order_id
         convert = args.convert
+        fee_info = args.fee_info
 
         tS = timeStamp()
         logging.debug("Program started at %s" %tS)
@@ -355,7 +376,13 @@ def main(argv):
                 logging.info("Current orders call: "+ret)
                 print(ret)
                 sys.exit(0)
-           
+        if fee_info:
+            try:
+                get_fee_info()
+            except Exception as err:
+                print(err)
+            #else:
+               # print(ret)
 
         if cancel_order and order_id != 'null':
             try:
@@ -414,7 +441,15 @@ def main(argv):
                 if verbose: print(err)
                 sys.exit(1)
 
-
+        if get_deposit_address:
+            try:
+                ret = get_deposit_addresses_(currency)
+            except Exception as err:
+                print('Error: '+ str(err))
+                pass
+                sys.exit(1)
+            else:
+                print(ret)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
